@@ -135,6 +135,17 @@ This will execute the run.sh script which handles all the setup and startup auto
 
 See [TODO.md](./TODO.md) for the current development status and upcoming tasks.
 
+## Git Workflow
+
+This project follows a simple branching model:
+
+- **main**: Production branch that contains stable releases
+- **development**: Active development branch where new features are integrated
+- Feature branches should be created from the `development` branch using the format `feature/feature-name`
+- Bug fixes use the format `fix/bug-name`
+
+For more details on contributing, see [CONTRIBUTING.md](./CONTRIBUTING.md).
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details. 
