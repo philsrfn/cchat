@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cchat/server/internal/models"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/gotext/server/internal/models"
 )
 
 const (
@@ -115,7 +115,7 @@ func getSecretKey() string {
 	if secretKey == "" {
 		// Warning: In production, always use an environment variable for the secret key
 		// This default is for development only
-		secretKey = "cchat_development_secret_key"
+		secretKey = "gotext_development_secret_key"
 		fmt.Println("Warning: Using default JWT secret key. Set JWT_SECRET_KEY environment variable for production.")
 	}
 	return secretKey

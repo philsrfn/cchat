@@ -5,8 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/cchat/server/internal/auth"
 	"github.com/google/uuid"
+	"github.com/gotext/server/internal/auth"
 )
 
 // contextKey is a custom type to avoid context key collisions

@@ -30,7 +30,7 @@ func DefaultConfig() Config {
 		Port:     getEnv("DB_PORT", "5432"),
 		User:     getEnv("DB_USER", "phil"),
 		Password: getEnv("DB_PASSWORD", ""),
-		DBName:   getEnv("DB_NAME", "cchat"),
+		DBName:   getEnv("DB_NAME", "gotext"),
 		SSLMode:  getEnv("DB_SSLMODE", "disable"),
 	}
 }

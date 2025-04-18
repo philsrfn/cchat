@@ -1,4 +1,4 @@
-# CChat - Modern Chat Application
+# GoText - Modern Chat Application
 
 A real-time chat application with a Go backend and web frontend.
 
@@ -26,7 +26,7 @@ A real-time chat application with a Go backend and web frontend.
 ## Project Structure
 
 ```
-cchat/
+gotext/
 ├── server/              # Go backend server
 │   ├── cmd/             # Main applications and entry points
 │   └── internal/        # Private application code

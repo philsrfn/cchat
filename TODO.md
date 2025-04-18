@@ -1,4 +1,4 @@
-# CChat - Chat Application TODO List
+# GoText - Chat Application TODO List
 
 ## Project Overview
 A chat server application with a Go backend and web frontend that allows:

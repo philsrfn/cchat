@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cchat/server/internal/db"
-	"github.com/cchat/server/internal/models"
 	"github.com/google/uuid"
+	"github.com/gotext/server/internal/db"
+	"github.com/gotext/server/internal/models"
 	"golang.org/x/crypto/bcrypt"
 )
 

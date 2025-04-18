@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cchat/server/internal/auth"
-	"github.com/cchat/server/internal/db"
-	"github.com/cchat/server/internal/middleware"
+	"github.com/gotext/server/internal/auth"
+	"github.com/gotext/server/internal/db"
+	"github.com/gotext/server/internal/middleware"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 
 func main() {
 	// Setup logger
-	logger := log.New(os.Stdout, "CChat: ", log.LstdFlags|log.Lshortfile)
+	logger := log.New(os.Stdout, "GoText: ", log.LstdFlags|log.Lshortfile)
 
 	// Get port from environment or use default
 	port := os.Getenv("PORT")

@@ -10,12 +10,12 @@ NC=\033[0m # No Color
 all: help
 
 # Database settings
-DB_NAME=cchat
+DB_NAME=gotext
 DB_USER=$(shell whoami)
 
 # Help message
 help:
-	@echo "${YELLOW}CChat Application Makefile${NC}"
+	@echo "${YELLOW}GoText Application Makefile${NC}"
 	@echo ""
 	@echo "Available commands:"
 	@echo "${GREEN}make setup${NC}      - Initialize the development environment"

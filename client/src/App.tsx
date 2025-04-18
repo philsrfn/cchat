@@ -78,13 +78,13 @@ const App: React.FC = () => {
     <AuthProvider>
       <div className="app">
         <header className="app-header">
-          <h1>CChat</h1>
+          <h1>GoText</h1>
         </header>
         <main className="app-content">
           <AppRoutes />
         </main>
         <footer className="app-footer">
-          <p>&copy; {new Date().getFullYear()} CChat</p>
+          <p>&copy; {new Date().getFullYear()} GoText</p>
         </footer>
       </div>
     </AuthProvider>

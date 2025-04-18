@@ -1,6 +1,6 @@
 {
-  "short_name": "CChat",
-  "name": "CChat - Real-time Chat Application",
+  "short_name": "GoText",
+  "name": "GoText - Real-time Chat Application",
   "icons": [
     {
       "src": "favicon.ico",

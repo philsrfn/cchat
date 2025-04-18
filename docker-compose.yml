@@ -4,11 +4,11 @@ services:
   # PostgreSQL database
   postgres:
     image: postgres:15
-    container_name: cchat-postgres
+    container_name: gotext-postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: cchat
+      POSTGRES_DB: gotext
     ports:
       - "5432:5432"
     volumes:
@@ -25,13 +25,13 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile.dev
-    container_name: cchat-server
+    container_name: gotext-server
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: postgres
       DB_PASSWORD: postgres
-      DB_NAME: cchat
+      DB_NAME: gotext
       PORT: 8080
     ports:
       - "8080:8080"
@@ -47,7 +47,7 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile.dev
-    container_name: cchat-client
+    container_name: gotext-client
     environment:
       - NODE_ENV=development
     ports:

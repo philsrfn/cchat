@@ -8,7 +8,7 @@ NC='\033[0m' # No Color
 
 # Print header
 echo -e "${GREEN}====================================${NC}"
-echo -e "${GREEN}  CChat Application - Development   ${NC}"
+echo -e "${GREEN}  GoText Application - Development   ${NC}"
 echo -e "${GREEN}====================================${NC}"
 
 # Function to check if a command exists
@@ -50,11 +50,11 @@ fi
 
 # Create database if it doesn't exist
 echo -e "${GREEN}Creating database (if it doesn't exist)...${NC}"
-createdb cchat 2>/dev/null || echo -e "${YELLOW}Database cchat already exists.${NC}"
+createdb gotext 2>/dev/null || echo -e "${YELLOW}Database gotext already exists.${NC}"
 
 # Apply schema
 echo -e "${GREEN}Applying database schema...${NC}"
-psql -d cchat -f server/internal/db/schema.sql
+psql -d gotext -f server/internal/db/schema.sql
 
 # Start server in background
 echo -e "${GREEN}Starting Go server...${NC}"

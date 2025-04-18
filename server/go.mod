@@ -1,4 +1,4 @@
-module github.com/cchat/server
+module github.com/gotext/server
 
 go 1.24.1
 

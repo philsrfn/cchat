@@ -1,5 +1,5 @@
 {
-  "name": "cchat-client",
+  "name": "gotext-client",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
