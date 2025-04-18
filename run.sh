@@ -16,11 +16,28 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
+# Handle stop command
+if [ "$1" = "stop" ]; then
+  echo -e "${YELLOW}Stopping all Docker containers...${NC}"
+  if command_exists docker && command_exists docker-compose; then
+    docker-compose down
+    echo -e "${GREEN}Docker containers stopped successfully.${NC}"
+  else
+    echo -e "${RED}Docker or docker-compose not found. Cannot stop containers.${NC}"
+  fi
+  exit 0
+fi
+
 # Check if Docker is installed
 if command_exists docker && command_exists docker-compose; then
   echo -e "${YELLOW}Docker detected! Running with Docker...${NC}"
   
+  # Shut down any running Docker containers
+  echo -e "${GREEN}Shutting down any running Docker containers...${NC}"
+  docker-compose down 2>/dev/null
+  
   # Build and start Docker containers
+  echo -e "${GREEN}Starting Docker containers...${NC}"
   docker-compose up --build
   
   exit 0
