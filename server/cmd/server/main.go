@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -9,9 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gotext/server/internal/auth"
+	"github.com/gotext/server/internal/api"
 	"github.com/gotext/server/internal/db"
-	"github.com/gotext/server/internal/middleware"
 )
 
 const (
@@ -35,40 +36,19 @@ func main() {
 	}
 	defer db.Close()
 	
-	// Create router and register routes
-	router := http.NewServeMux()
+	// Get DB connection for passing to router setup
+	connStr := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		dbConfig.Host, dbConfig.Port, dbConfig.User, dbConfig.Password, dbConfig.DBName, dbConfig.SSLMode,
+	)
+	dbConn, err := sql.Open("postgres", connStr)
+	if err != nil {
+		logger.Fatalf("Failed to create DB connection: %v", err)
+	}
 	
-	// Basic health check endpoint
-	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	})
-
-	// Authentication routes
-	router.HandleFunc("/api/auth/register", auth.RegisterHandler)
-	router.HandleFunc("/api/auth/login", auth.LoginHandler)
-	router.HandleFunc("/api/auth/logout", auth.LogoutHandler)
-	router.Handle("/api/auth/validate", middleware.RequireAuth(http.HandlerFunc(auth.ValidateAuthHandler)))
+	// Create router using the Gin implementation from api package
+	router := api.SetupRouter(dbConn)
 	
-	// Protected routes example
-	router.Handle("/api/user/profile", middleware.RequireAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// This is a protected endpoint - only accessible with a valid JWT
-		userID, err := middleware.GetUserIDFromContext(r.Context())
-		if err != nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-		
-		// Just a simple response to demonstrate the protected route
-		response := map[string]interface{}{
-			"message": "Protected endpoint accessed successfully",
-			"user_id": userID,
-		}
-		
-		w.Header().Set("Content-Type", "application/json")
-		auth.RespondWithJSON(w, http.StatusOK, response)
-	})))
-
 	// Create server
 	server := &http.Server{
 		Addr:         ":" + port,

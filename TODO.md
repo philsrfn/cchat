@@ -24,7 +24,7 @@ A chat server application with a Go backend and web frontend that allows:
 - [x] Set up frontend project (React/TypeScript)
 - [x] Create basic UI components
 - [x] Set up routing
-- [ ] Create login/registration pages
+- [x] Create login/registration pages
 
 ### Authentication
 
@@ -44,7 +44,7 @@ A chat server application with a Go backend and web frontend that allows:
 
 - [x] Create Makefile for running server, database, and web UI
 - [x] Set up Docker development environment
-- [ ] Add database migration scripts
+<!-- - [ ] Add database migration scripts -->
 - [x] Create automated scripts for development setup
 - [x] Configure VS Code integration for one-click run
 - [x] Document build process

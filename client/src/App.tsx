@@ -3,21 +3,10 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import AuthProvider, { useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
 import './styles/App.css';
 
-// Placeholder components - these will be implemented later
-const Home = () => {
-  const { user, logout } = useAuth();
-  
-  return (
-    <div className="page">
-      <h1>Home Page</h1>
-      <p>Welcome, {user?.username}!</p>
-      <button onClick={logout} className="logout-button">Logout</button>
-    </div>
-  );
-};
-
+// Placeholder component for 404 page
 const NotFound = () => <div className="page">404 - Not Found</div>;
 
 // Protected route wrapper
@@ -55,7 +44,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={
         <ProtectedRoute>
-          <Home />
+          <Dashboard />
         </ProtectedRoute>
       } />
       <Route path="/login" element={
@@ -77,15 +66,9 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <div className="app">
-        <header className="app-header">
-          <h1>GoText</h1>
-        </header>
-        <main className="app-content">
+        <main className="app-content-fullscreen">
           <AppRoutes />
         </main>
-        <footer className="app-footer">
-          <p>&copy; {new Date().getFullYear()} GoText</p>
-        </footer>
       </div>
     </AuthProvider>
   );

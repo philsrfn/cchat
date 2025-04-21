@@ -2,89 +2,189 @@ package middleware
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"net/http"
+	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gotext/server/internal/auth"
+	"github.com/gotext/server/internal/users"
 )
 
-// contextKey is a custom type to avoid context key collisions
+// Helper function to get minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// Key type for context values
 type contextKey string
 
+// Context keys
 const (
-	// UserIDKey is the key used to store the user ID in the request context
-	UserIDKey contextKey = "user_id"
-	// UserEmailKey is the key used to store the user email in the request context
-	UserEmailKey contextKey = "user_email"
+	UserIDKey    contextKey = "userID"
+	UserEmailKey contextKey = "userEmail"
 )
 
-// AuthMiddleware validates the authentication token and adds the user to the request context
-func AuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// First try to get token from cookie
-		user, err := auth.ExtractUserFromCookie(r)
+// AuthMiddleware is the Gin middleware for authentication
+type AuthMiddleware struct {
+	DB *sql.DB
+	UserService *users.UserService
+}
+
+// NewAuthMiddleware creates a new auth middleware
+func NewAuthMiddleware(db *sql.DB) *AuthMiddleware {
+	return &AuthMiddleware{
+		DB: db,
+		UserService: users.NewUserService(db),
+	}
+}
+
+// GinAuthMiddleware authenticates the request
+func (m *AuthMiddleware) GinAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get token from Authorization header
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			// No Authorization header, try to get token from cookie
+			token, err := c.Cookie("token")
+			if err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+				c.Abort()
+				return
+			}
+			
+			// Validate the token
+			claims, err := auth.ValidateToken(token)
+			if err != nil {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+				c.Abort()
+				return
+			}
+			
+			// Set user ID in context for later use
+			c.Set("userID", claims.Subject)
+			c.Set("userEmail", claims.Email)
+			c.Next()
+			return
+		}
+		
+		// Check if the header has the Bearer prefix
+		parts := strings.Split(authHeader, " ")
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization format"})
+			c.Abort()
+			return
+		}
+		
+		tokenString := parts[1]
+		
+		// Validate the token
+		claims, err := auth.ValidateToken(tokenString)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			c.Abort()
+			return
+		}
+		
+		// Set user ID in context for later use
+		c.Set("userID", claims.Subject)
+		c.Set("userEmail", claims.Email)
+		c.Next()
+	}
+}
+
+// OptionalGinAuthMiddleware sets user info if authenticated, but doesn't require auth
+func (m *AuthMiddleware) OptionalGinAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get token from Authorization header
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			// No Authorization header, try to get token from cookie
+			token, err := c.Cookie("token")
+			if err == nil {
+				// Validate the token
+				claims, err := auth.ValidateToken(token)
+				if err == nil {
+					// Set user ID in context for later use
+					c.Set("userID", claims.Subject)
+					c.Set("userEmail", claims.Email)
+				}
+			}
+			// Continue regardless of authentication status
+			c.Next()
+			return
+		}
+		
+		// Check if the header has the Bearer prefix
+		parts := strings.Split(authHeader, " ")
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			// Invalid format but continue anyway (optional auth)
+			c.Next()
+			return
+		}
+		
+		tokenString := parts[1]
+		
+		// Validate the token
+		claims, err := auth.ValidateToken(tokenString)
 		if err == nil {
-			// Add user to request context
-			ctx := context.WithValue(r.Context(), "user", user)
-			// Call the next handler with the updated context
-			next.ServeHTTP(w, r.WithContext(ctx))
+			// Set user ID in context for later use
+			c.Set("userID", claims.Subject)
+			c.Set("userEmail", claims.Email)
+		}
+		
+		// Continue regardless of authentication status
+		c.Next()
+	}
+}
+
+// HttpAuthMiddleware is the HTTP middleware for authentication
+func HttpAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Extract token from Authorization header
+		tokenString, err := auth.ExtractTokenFromRequest(r)
+		if err != nil {
+			http.Error(w, "Unauthorized: "+err.Error(), http.StatusUnauthorized)
 			return
 		}
 
-		// If no valid cookie, try Authorization header
-		tokenString, err := auth.ExtractTokenFromRequest(r)
-		if err == nil {
-			// Validate the token
-			claims, err := auth.ValidateToken(tokenString)
-			if err == nil {
-				// Get user from database
-				user, err := auth.GetUserByEmail(claims.Email)
-				if err == nil {
-					// Add user to request context
-					ctx := context.WithValue(r.Context(), "user", user)
-					// Call the next handler with the updated context
-					next.ServeHTTP(w, r.WithContext(ctx))
-					return
-				}
-			}
+		// Validate the token
+		claims, err := auth.ValidateToken(tokenString)
+		if err != nil {
+			http.Error(w, "Unauthorized: "+err.Error(), http.StatusUnauthorized)
+			return
 		}
 
-		// No valid authentication found
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{"success":false,"error":"Unauthorized"}`))
+		// Add claims to context
+		ctx := context.WithValue(r.Context(), UserIDKey, claims.Subject)
+		ctx = context.WithValue(ctx, UserEmailKey, claims.Email)
+
+		// Call the next handler with the new context
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-// OptionalAuthMiddleware tries to authenticate the user but doesn't require it
+// OptionalAuthMiddleware sets user info if authenticated, but doesn't require auth
 func OptionalAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Try to get user from cookie
-		user, err := auth.ExtractUserFromCookie(r)
-		if err == nil {
-			// Add user to request context
-			ctx := context.WithValue(r.Context(), "user", user)
-			// Call the next handler with the updated context
-			next.ServeHTTP(w, r.WithContext(ctx))
-			return
-		}
-
-		// If no valid cookie, try Authorization header
+		// Extract token from Authorization header
 		tokenString, err := auth.ExtractTokenFromRequest(r)
 		if err == nil {
 			// Validate the token
 			claims, err := auth.ValidateToken(tokenString)
 			if err == nil {
-				// Get user from database
-				user, err := auth.GetUserByEmail(claims.Email)
-				if err == nil {
-					// Add user to request context
-					ctx := context.WithValue(r.Context(), "user", user)
-					// Call the next handler with the updated context
-					next.ServeHTTP(w, r.WithContext(ctx))
-					return
-				}
+				// Add claims to context
+				ctx := context.WithValue(r.Context(), UserIDKey, claims.Subject)
+				ctx = context.WithValue(ctx, UserEmailKey, claims.Email)
+				
+				// Call the next handler with the new context
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
 			}
 		}
 
@@ -96,10 +196,16 @@ func OptionalAuthMiddleware(next http.Handler) http.Handler {
 
 // GetUserIDFromContext retrieves the user ID from the request context
 func GetUserIDFromContext(ctx context.Context) (uuid.UUID, error) {
-	userID, ok := ctx.Value(UserIDKey).(uuid.UUID)
+	userIDStr, ok := ctx.Value(UserIDKey).(string)
 	if !ok {
 		return uuid.Nil, errors.New("user ID not found in context")
 	}
+	
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return uuid.Nil, errors.New("invalid user ID in context")
+	}
+	
 	return userID, nil
 }
 
@@ -114,5 +220,5 @@ func GetUserEmailFromContext(ctx context.Context) (string, error) {
 
 // RequireAuth is a convenient wrapper for routes that require authentication
 func RequireAuth(handler http.HandlerFunc) http.Handler {
-	return AuthMiddleware(http.HandlerFunc(handler))
+	return HttpAuthMiddleware(http.HandlerFunc(handler))
 } 

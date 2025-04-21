@@ -31,64 +31,44 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
-// Cookie helper functions
-const setCookie = (name: string, value: string, days = 7) => {
-  const date = new Date();
-  date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-  const expires = `expires=${date.toUTCString()}`;
-  document.cookie = `${name}=${value};${expires};path=/;SameSite=Strict`;
-};
-
-const getCookie = (name: string): string | null => {
-  const cookies = document.cookie.split(';');
-  for (let i = 0; i < cookies.length; i++) {
-    const cookie = cookies[i].trim();
-    if (cookie.startsWith(name + '=')) {
-      return cookie.substring(name.length + 1);
+// Helper to parse user cookie
+const getUserFromCookie = (): UserResponse | null => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; user=`);
+  if (parts.length === 2) {
+    const userCookie = parts.pop()?.split(';').shift();
+    if (userCookie) {
+      try {
+        return JSON.parse(decodeURIComponent(userCookie));
+      } catch (e) {
+        console.error("Error parsing user cookie:", e);
+      }
     }
   }
   return null;
 };
 
-const removeCookie = (name: string) => {
-  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-};
-
 // Auth service
 const AuthService = {
-  // Get current auth token
-  getToken: (): string | null => {
-    return getCookie('auth_token');
-  },
-
-  // Get current user from cookie
+  // Get current user
   getCurrentUser: (): UserResponse | null => {
-    const userJson = getCookie('user');
-    return userJson ? JSON.parse(userJson) : null;
+    return getUserFromCookie();
   },
 
   // Check if user is authenticated
   isAuthenticated: (): boolean => {
-    return !!AuthService.getToken();
+    return !!AuthService.getCurrentUser();
   },
 
   // Login
   login: async (credentials: LoginRequest): Promise<UserResponse> => {
     try {
-      const response = await axios.post<ApiResponse<LoginResponse>>('/api/auth/login', credentials);
+      const response = await axios.post<any>('/api/auth/login', credentials, {
+        withCredentials: true
+      });
       
-      if (response.data.success && response.data.data) {
-        // Save auth token and user info in cookies
-        setCookie('auth_token', response.data.data.token);
-        setCookie('user', JSON.stringify(response.data.data.user));
-        
-        // Set default Authorization header for future requests
-        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.data.token}`;
-        
-        return response.data.data.user;
-      } else {
-        throw new Error(response.data.error || 'Login failed');
-      }
+      // Return the user data from the response
+      return response.data.user;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         throw new Error(error.response.data.error || 'Login failed');
@@ -100,13 +80,11 @@ const AuthService = {
   // Register
   register: async (userData: RegisterRequest): Promise<UserResponse> => {
     try {
-      const response = await axios.post<ApiResponse<UserResponse>>('/api/auth/register', userData);
+      const response = await axios.post<any>('/api/auth/register', userData, {
+        withCredentials: true
+      });
       
-      if (response.data.success && response.data.data) {
-        return response.data.data;
-      } else {
-        throw new Error(response.data.error || 'Registration failed');
-      }
+      return response.data.user;
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         throw new Error(error.response.data.error || 'Registration failed');
@@ -119,42 +97,32 @@ const AuthService = {
   logout: async (): Promise<void> => {
     try {
       // Call the server logout endpoint to clear server-side cookie
-      await axios.post('/api/auth/logout');
+      await axios.post('/api/auth/logout', {}, { withCredentials: true });
     } catch (error) {
       console.error('Error during logout:', error);
-    } finally {
-      // Remove cookies even if the server call fails
-      removeCookie('auth_token');
-      removeCookie('user');
-      
-      // Remove Authorization header
-      delete axios.defaults.headers.common['Authorization'];
     }
   },
 
   // Validate the current session
   validateSession: async (): Promise<UserResponse | null> => {
     try {
-      const response = await axios.get<ApiResponse<UserResponse>>('/api/auth/validate');
+      const response = await axios.get<any>('/api/auth/validate', {
+        withCredentials: true
+      });
       
-      if (response.data.success && response.data.data) {
-        // Update the user cookie with the latest info
-        setCookie('user', JSON.stringify(response.data.data));
-        return response.data.data;
+      // Updated to match the new backend response format
+      if (response.data && response.data.authenticated && response.data.user) {
+        return response.data.user;
       }
       return null;
     } catch (error) {
-      // If validation fails, clear the cookies and headers
-      AuthService.logout();
+      console.error('Session validation failed:', error);
       return null;
     }
   }
 };
 
-// Set auth header if token exists on app initialization
-const token = AuthService.getToken();
-if (token) {
-  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-}
+// Configure axios to always include credentials
+axios.defaults.withCredentials = true;
 
 export default AuthService; 

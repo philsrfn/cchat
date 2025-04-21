@@ -121,7 +121,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set auth cookie
+	// Set auth cookie - ensure SameSite settings are browser-compatible
 	http.SetCookie(w, &http.Cookie{
 		Name:     AuthCookieName,
 		Value:    token,
@@ -129,7 +129,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   CookieMaxAge,
 		HttpOnly: true,
 		Secure:   r.TLS != nil, // Set Secure flag if using HTTPS
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode,  // More compatible than Strict
 	})
 
 	// Return token and user data
@@ -215,9 +215,31 @@ func getUserByEmail(email string) (models.User, error) {
 	return user, nil
 }
 
-// GetUserByEmail is an exported version of getUserByEmail for use in middleware
-func GetUserByEmail(email string) (models.User, error) {
-	return getUserByEmail(email)
+// GetUserByID is an exported version of getUserByID for use in middleware
+func GetUserByID(id uuid.UUID) (models.User, error) {
+	var user models.User
+	
+	query := `SELECT id, username, email, password_hash, is_email_verified, email_verification_token, created_at, updated_at 
+			  FROM users WHERE id = $1`
+	
+	row := db.DB.QueryRow(query, id)
+	
+	err := row.Scan(
+		&user.ID, 
+		&user.Username, 
+		&user.Email, 
+		&user.PasswordHash,
+		&user.IsEmailVerified,
+		&user.EmailVerificationToken,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if err != nil {
+		return models.User{}, errors.New("user not found")
+	}
+
+	return user, nil
 }
 
 // createUser stores a new user in the database
@@ -252,29 +274,6 @@ func createUser(user models.User) error {
 	)
 
 	return err
-}
-
-// ExtractUserFromCookie gets the user from the auth cookie
-func ExtractUserFromCookie(r *http.Request) (models.User, error) {
-	// Get the auth cookie
-	cookie, err := r.Cookie(AuthCookieName)
-	if err != nil {
-		return models.User{}, errors.New("no auth cookie found")
-	}
-
-	// Validate the token from cookie
-	claims, err := ValidateToken(cookie.Value)
-	if err != nil {
-		return models.User{}, err
-	}
-
-	// Get the user from database
-	user, err := getUserByEmail(claims.Email)
-	if err != nil {
-		return models.User{}, errors.New("user not found")
-	}
-
-	return user, nil
 }
 
 // IsTokenExpired checks if a token is expired

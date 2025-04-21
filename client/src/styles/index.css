@@ -1,3 +1,19 @@
+:root {
+  --bg-dark: #121212;
+  --bg-dark-secondary: #1e1e1e;
+  --bg-dark-elevated: #282828;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --accent-color: #fff;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --button-bg: #282828;
+  --button-hover: #3a3a3a;
+  --button-active: #ffffff;
+  --button-text: #ffffff;
+  --input-bg: #282828;
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -11,7 +27,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f5f5f5;
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
 }
 
 code {
@@ -21,11 +38,41 @@ code {
 
 a {
   text-decoration: none;
-  color: inherit;
+  color: var(--accent-color);
 }
 
 button {
   cursor: pointer;
+  background-color: var(--button-bg);
+  color: var(--button-text);
+  border: 1px solid var(--border-color);
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  background-color: var(--button-hover);
+}
+
+button:active {
+  background-color: var(--button-active);
+  color: #121212;
+}
+
+input, textarea {
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+input:focus, textarea:focus {
+  outline: 1px solid var(--accent-color);
+  border-color: var(--accent-color);
 }
 
 ul, ol {

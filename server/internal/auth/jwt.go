@@ -3,13 +3,10 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"github.com/gotext/server/internal/models"
 )
 
@@ -27,13 +24,6 @@ var (
 	ErrInvalidSigningMethod = errors.New("invalid signing method")
 )
 
-// Claims represents the JWT claims
-type Claims struct {
-	UserID uuid.UUID `json:"user_id"`
-	Email  string    `json:"email"`
-	jwt.RegisteredClaims
-}
-
 // GenerateToken creates a new JWT token for a user
 func GenerateToken(user models.User) (string, error) {
 	// Get secret key from environment
@@ -42,13 +32,12 @@ func GenerateToken(user models.User) (string, error) {
 	// Create the claims
 	expirationTime := time.Now().Add(DefaultTokenExpiration)
 	claims := &Claims{
-		UserID: user.ID,
-		Email:  user.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Subject:   user.ID.String(),
 		},
+		Email: user.Email,
 	}
 
 	// Create the token with the claims
@@ -61,52 +50,6 @@ func GenerateToken(user models.User) (string, error) {
 	}
 
 	return tokenString, nil
-}
-
-// ValidateToken validates a JWT token
-func ValidateToken(tokenString string) (*Claims, error) {
-	// Get secret key from environment
-	secretKey := getSecretKey()
-
-	// Parse the token
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		// Validate the signing method
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, ErrInvalidSigningMethod
-		}
-		return []byte(secretKey), nil
-	})
-
-	if err != nil {
-		if errors.Is(err, jwt.ErrTokenExpired) {
-			return nil, ErrExpiredToken
-		}
-		return nil, ErrInvalidToken
-	}
-
-	// Extract the claims
-	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
-		return claims, nil
-	}
-	
-	return nil, ErrInvalidToken
-}
-
-// ExtractTokenFromRequest extracts the JWT token from the Authorization header
-func ExtractTokenFromRequest(r *http.Request) (string, error) {
-	// Get the Authorization header
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		return "", errors.New("authorization header is required")
-	}
-
-	// Check the format of the header
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		return "", errors.New("invalid authorization header format")
-	}
-
-	return parts[1], nil
 }
 
 // getSecretKey gets the JWT secret key from environment or returns a default (for development only)
